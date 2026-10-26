@@ -1,0 +1,20 @@
+{
+  "name": "nodi",
+  "version": "0.1.0",
+  "private": true,
+  "description": "Mediola Eva a.i.o. — lokal Codes lernen und senden (Meilenstein 1)",
+  "type": "module",
+  "engines": {
+    "node": ">=22"
+  },
+  "scripts": {
+    "cli": "tsx src/cli.ts",
+    "test": "tsx --test src/*.test.ts src/**/*.test.ts",
+    "typecheck": "tsc --noEmit"
+  },
+  "devDependencies": {
+    "@types/node": "^22.13.10",
+    "tsx": "^4.19.3",
+    "typescript": "^5.8.2"
+  }
+}
