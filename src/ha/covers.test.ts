@@ -9,7 +9,7 @@ const store: CodeStore = {
   shutters: {
     living: {
       id: "living",
-      label: "Wohnzimmer",
+      label: "Living room",
       codes: {
         up: {
           code: "19082601000200000100DE58800101010000000000000100000000",
@@ -29,7 +29,7 @@ const store: CodeStore = {
     },
     kitchen: {
       id: "kitchen",
-      label: "Küche",
+      label: "Kitchen",
       codes: {
         up: {
           code: "19082601000200000100DE58800101010000000000000100000002",
@@ -62,24 +62,31 @@ describe("covers", () => {
 
 describe("generateHaYaml", () => {
   it("emits modern template covers for ready shutters only", () => {
-    const yaml = generateHaYaml(listCovers(store), "http://192.168.178.10:8788");
+    const yaml = generateHaYaml(listCovers(store), "http://127.0.0.1:8788");
     assert.match(yaml, /rest_command:/);
     assert.match(yaml, /template:/);
     assert.match(yaml, /unique_id: nodi_living/);
     assert.match(yaml, /device_class: shutter/);
     assert.match(yaml, /action: rest_command\.nodi_living_open/);
     assert.match(yaml, /action: rest_command\.nodi_living_close/);
-    assert.match(yaml, /Incomplete/);
+    assert.match(yaml, /incomplete/);
     assert.match(yaml, /kitchen/);
     assert.doesNotMatch(yaml, /unique_id: nodi_kitchen/);
     assert.match(
       yaml,
-      /url: "http:\/\/192\.168\.178\.10:8788\/api\/covers\/living\/open"/,
+      /url: "http:\/\/127\.0\.0\.1:8788\/api\/covers\/living\/open"/,
     );
   });
 
   it("entityId sanitizes", () => {
     assert.equal(entityId("Living Room"), "nodi_living_room");
     assert.equal(restKey("living", "open"), "nodi_living_open");
+  });
+
+  it("includes Authorization when bridgeToken is set", () => {
+    const yaml = generateHaYaml(listCovers(store), "http://127.0.0.1:8788", {
+      bridgeToken: "secret",
+    });
+    assert.match(yaml, /Authorization: Bearer secret/);
   });
 });

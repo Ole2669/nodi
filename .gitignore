@@ -1,5 +1,48 @@
+# Dependencies
 node_modules/
-data/
+
+# Local secrets and runtime data
 .env
+.env.local
+.env.*.local
+data/*
+!data/README.md
+
+# TypeScript / build
 *.tsbuildinfo
+dist/
+build/
+coverage/
+
+# OS / editors
 .DS_Store
+Thumbs.db
+.idea/
+.vscode/
+*.swp
+*.swo
+
+# Python (Home Assistant custom component)
+__pycache__/
+*.py[cod]
+.Python
+.venv/
+venv/
+*.egg-info/
+.pytest_cache/
+.mypy_cache/
+.ruff_cache/
+
+# Logs / coverage
+.coverage
+htmlcov/
+*.log
+npm-debug.log*
+
+# Local certificates / keys
+*.pem
+*.key
+*.p12
+*.pfx
+*.crt
+!**/test*.pem

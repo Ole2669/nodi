@@ -3,7 +3,6 @@ import type { CodeStore, ShutterRecord } from "../store.js";
 
 export type CoverAction = "open" | "close" | "stop";
 
-/** HA cover action → stored Mediola direction. */
 export const ACTION_TO_DIRECTION: Record<CoverAction, Direction> = {
   open: "up",
   close: "down",
@@ -14,7 +13,7 @@ export type CoverInfo = {
   id: string;
   name: string;
   actions: CoverAction[];
-  /** Ready for HA when open + close exist (stop optional). */
+
   ready: boolean;
 };
 
@@ -43,13 +42,13 @@ export function resolveCoverAction(
 ): { ok: true; direction: Direction; name: string } | { ok: false; error: string } {
   const shutter = store.shutters[shutterId];
   if (!shutter) {
-    return { ok: false, error: `Unbekannter Rollladen: ${shutterId}` };
+    return { ok: false, error: `Unknown shutter: ${shutterId}` };
   }
   const direction = ACTION_TO_DIRECTION[action];
   if (!shutter.codes[direction]) {
     return {
       ok: false,
-      error: `Kein Code für „${shutterId}“ ${action} (${direction}) — zuerst learn`,
+      error: `No code for "${shutterId}" ${action} (${direction}) — learn first`,
     };
   }
   return { ok: true, direction, name: shutter.label || shutter.id };

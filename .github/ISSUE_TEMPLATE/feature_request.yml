@@ -1,0 +1,39 @@
+name: Feature request
+description: Suggest an improvement for Nodi
+title: "[Feature]: "
+labels: ["enhancement"]
+body:
+  - type: markdown
+    attributes:
+      value: Describe the problem first, then the idea. Keep requests realistic for a local Mediola + Home Assistant tool.
+  - type: dropdown
+    id: area
+    attributes:
+      label: Area
+      options:
+        - Home Assistant integration
+        - Node CLI
+        - HTTP bridge
+        - Docs / DX
+        - Other
+    validations:
+      required: true
+  - type: textarea
+    id: problem
+    attributes:
+      label: Problem
+      description: What pain point are you trying to solve?
+    validations:
+      required: true
+  - type: textarea
+    id: proposal
+    attributes:
+      label: Proposal
+      description: How should Nodi behave?
+    validations:
+      required: true
+  - type: textarea
+    id: alternatives
+    attributes:
+      label: Alternatives considered
+      description: Other approaches or existing HA features you tried

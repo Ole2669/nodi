@@ -2,7 +2,26 @@
   "name": "nodi",
   "version": "0.1.0",
   "private": true,
-  "description": "Mediola Eva a.i.o. — Learn/Send + Home Assistant Covers",
+  "description": "Learn Mediola Eva a.i.o. IR/RF shutter codes and expose them as Home Assistant covers",
+  "keywords": [
+    "home-assistant",
+    "mediola",
+    "cover",
+    "shutter",
+    "ir",
+    "rf",
+    "smart-home"
+  ],
+  "author": "Ole2669",
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/Ole2669/nodi.git"
+  },
+  "license": "MIT",
+  "bugs": {
+    "url": "https://github.com/Ole2669/nodi/issues"
+  },
+  "homepage": "https://github.com/Ole2669/nodi#readme",
   "type": "module",
   "engines": {
     "node": ">=22"

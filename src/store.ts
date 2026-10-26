@@ -32,7 +32,7 @@ export function loadStore(dataDir: string): CodeStore {
   if (!existsSync(path)) return structuredClone(EMPTY);
   const raw = JSON.parse(readFileSync(path, "utf8")) as CodeStore;
   if (raw.version !== 1 || typeof raw.shutters !== "object") {
-    throw new Error(`Ungültiger Store: ${path}`);
+    throw new Error(`Invalid store: ${path}`);
   }
   return raw;
 }
@@ -50,7 +50,7 @@ export function assignCode(
   label?: string,
 ): CodeStore {
   const id = shutterId.trim();
-  if (!id) throw new Error("shutterId fehlt");
+  if (!id) throw new Error("shutterId missing");
   const next = structuredClone(store);
   const existing = next.shutters[id];
   next.shutters[id] = {
@@ -69,13 +69,40 @@ export function getCode(
   return store.shutters[shutterId]?.codes[direction] ?? null;
 }
 
-/** Defaults for Send2 from guessed medium. */
+export function removeCode(
+  store: CodeStore,
+  shutterId: string,
+  direction?: Direction,
+): { store: CodeStore; removed: string } | null {
+  const existing = store.shutters[shutterId];
+  if (!existing) return null;
+
+  const next = structuredClone(store);
+
+  if (!direction) {
+    delete next.shutters[shutterId];
+    return { store: next, removed: `shutter "${shutterId}" fully removed` };
+  }
+
+  if (!existing.codes[direction]) return null;
+  delete next.shutters[shutterId]!.codes[direction];
+  const left = Object.keys(next.shutters[shutterId]!.codes);
+  if (left.length === 0) {
+    delete next.shutters[shutterId];
+    return {
+      store: next,
+      removed: `"${shutterId}" ${direction} (empty → removed)`,
+    };
+  }
+  return { store: next, removed: `"${shutterId}" ${direction}` };
+}
+
 export function channelsForMedium(medium: "ir" | "rf" | "unknown"): {
   ir: IrRfId;
   rf: IrRfId;
 } {
   if (medium === "rf") return { ir: "00", rf: "01" };
   if (medium === "ir") return { ir: "01", rf: "00" };
-  // Unknown: prefer internal IR diode; override via store edit if RF.
+
   return { ir: "01", rf: "00" };
 }

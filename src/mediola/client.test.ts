@@ -1,6 +1,10 @@
 import assert from "node:assert/strict";
 import { describe, it } from "node:test";
-import { MediolaClient, MediolaOfflineError } from "./client.js";
+import {
+  MediolaClient,
+  MediolaOfflineError,
+  redactGatewayUrl,
+} from "./client.js";
 
 const SAMPLE =
   "19082601000200000100DE58800101010000000000000100000000";
@@ -68,5 +72,14 @@ describe("MediolaClient", () => {
     });
     const res = await c.ping();
     assert.equal(res.online, false);
+  });
+
+  it("redactGatewayUrl masks XC_USER and XC_PASS", () => {
+    const url =
+      "http://gw.local/command?code=ABC&XC_FNC=Send2&XC_USER=alice&XC_PASS=s3cret";
+    assert.equal(
+      redactGatewayUrl(url),
+      "http://gw.local/command?code=ABC&XC_FNC=Send2&XC_USER=***&XC_PASS=***",
+    );
   });
 });

@@ -3,13 +3,10 @@ import type { LearnedCode, ParseResult } from "./types.js";
 const SUC = "{XC_SUC}";
 const ERR = "{XC_ERR}";
 
-/**
- * Accept classic `{XC_SUC}…` / `{XC_ERR}…` and V5-style `{"XC_SUC":…}`.
- */
 export function parseMediolaResponse(raw: string): ParseResult {
   const text = raw.trim();
   if (!text) {
-    return { ok: false, raw, payload: "", error: "Leere Gateway-Antwort" };
+    return { ok: false, raw, payload: "", error: "Empty gateway response" };
   }
 
   if (text.startsWith(SUC)) {
@@ -23,7 +20,7 @@ export function parseMediolaResponse(raw: string): ParseResult {
       ok: false,
       raw: text,
       payload,
-      error: payload.trim() || "Unbekannter Gateway-Fehler",
+      error: payload.trim() || "Unknown gateway error",
     };
   }
 
@@ -43,7 +40,7 @@ export function parseMediolaResponse(raw: string): ParseResult {
         };
       }
     } catch {
-      /* fall through */
+
     }
   }
 
@@ -51,21 +48,16 @@ export function parseMediolaResponse(raw: string): ParseResult {
     ok: false,
     raw: text,
     payload: text,
-    error: "Unerwartete Gateway-Antwort (kein {XC_SUC}/{XC_ERR})",
+    error: "Unexpected gateway response (no {XC_SUC}/{XC_ERR})",
   };
 }
 
-/** Hex mediola code: starts with 1908 or ends with 001908 (official docs). */
 export function looksLikeMediolaCode(value: string): boolean {
   const hex = value.trim().toUpperCase();
   if (!/^[0-9A-F]+$/.test(hex) || hex.length < 8) return false;
   return hex.startsWith("1908") || hex.endsWith("001908");
 }
 
-/**
- * Pull a learned CODE out of a successful Learn response.
- * Tolerates FHEM-style bodies and V5 `{"CODE":"…"}`.
- */
 export function extractLearnedCode(result: ParseResult): LearnedCode | null {
   if (!result.ok) return null;
 
@@ -104,11 +96,6 @@ function codeFromUnknown(data: unknown): LearnedCode | null {
   return null;
 }
 
-/**
- * Heuristic only — Eva may not label IR vs RF.
- * Short RF-ish bursts often stay under ~40 hex chars; classic IR dumps are longer.
- * Caller can override when assigning.
- */
 export function guessMedium(code: string): "ir" | "rf" | "unknown" {
   const len = code.trim().length;
   if (len >= 80) return "ir";

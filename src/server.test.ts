@@ -24,7 +24,7 @@ describe("cover server", () => {
       medium: "unknown" as const,
       learnedAt: "2026-01-01T00:00:00.000Z",
     };
-    store = assignCode(store, "living", "up", { ...base, code: CODE_UP }, "Wohnzimmer");
+    store = assignCode(store, "living", "up", { ...base, code: CODE_UP }, "Living room");
     store = assignCode(store, "living", "down", { ...base, code: CODE_DOWN });
     saveStore(dir, store);
 
@@ -79,6 +79,31 @@ describe("cover server", () => {
         method: "POST",
       });
       assert.equal(missing.status, 404);
+    } finally {
+      await srv.close();
+    }
+  });
+
+  it("requires Bearer token when bridgeToken is set", async () => {
+    const cfg: NodiConfig = {
+      gatewayUrl: "http://gw.local",
+      timeoutMs: 1000,
+      learnTimeoutMs: 1000,
+      dataDir: dir,
+      serveHost: "127.0.0.1",
+      servePort: 0,
+      haBaseUrl: "http://127.0.0.1",
+      bridgeToken: "test-token",
+    };
+    const srv = await startCoverServer({ cfg, host: "127.0.0.1", port: 0 });
+    try {
+      const baseUrl = `http://127.0.0.1:${srv.port}`;
+      assert.equal((await fetch(`${baseUrl}/health`)).status, 200);
+      assert.equal((await fetch(`${baseUrl}/api/covers`)).status, 401);
+      const ok = await fetch(`${baseUrl}/api/covers`, {
+        headers: { Authorization: "Bearer test-token" },
+      });
+      assert.equal(ok.status, 200);
     } finally {
       await srv.close();
     }

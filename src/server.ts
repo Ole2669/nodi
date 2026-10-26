@@ -14,14 +14,10 @@ export type ServerOptions = {
   cfg: NodiConfig;
   host?: string;
   port?: number;
-  /** Injected for tests. */
+
   fetchImpl?: typeof fetch;
 };
 
-/**
- * Minimal HTTP bridge for Home Assistant.
- * Starting this process is the send authorization boundary (no CLI --yes).
- */
 export function startCoverServer(opts: ServerOptions): Promise<{
   host: string;
   port: number;
@@ -62,6 +58,11 @@ async function handle(
 
   if (method === "GET" && url.pathname === "/health") {
     json(res, 200, { ok: true, service: "nodi" });
+    return;
+  }
+
+  if (!authorize(req, opts.cfg.bridgeToken)) {
+    json(res, 401, { ok: false, message: "Unauthorized" });
     return;
   }
 
@@ -109,6 +110,12 @@ async function handle(
   }
 
   json(res, 404, { ok: false, message: "Not found" });
+}
+
+function authorize(req: IncomingMessage, token: string | undefined): boolean {
+  if (!token) return true;
+  const header = req.headers.authorization;
+  return header === `Bearer ${token}`;
 }
 
 function json(res: ServerResponse, status: number, body: unknown): void {

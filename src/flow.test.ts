@@ -43,7 +43,7 @@ describe("flow", () => {
 
       const denied = await sendConfirmed(c, "kitchen", "down", false);
       assert.equal(denied.ok, false);
-      assert.match(denied.message, /Bestätigung fehlt/);
+      assert.match(denied.message, /confirmation missing/);
 
       const sent = await sendConfirmed(
         c,
@@ -53,7 +53,7 @@ describe("flow", () => {
         mockFetch("{XC_SUC}"),
       );
       assert.equal(sent.ok, true);
-      assert.match(sent.message, /Send2 akzeptiert/);
+      assert.match(sent.message, /Send2 accepted/);
     } finally {
       rmSync(dir, { recursive: true, force: true });
     }
@@ -66,7 +66,7 @@ describe("flow", () => {
         fetchImpl: mockFetch("{XC_SUC}{\"hello\":1}"),
       });
       assert.equal(out.ok, false);
-      assert.match(out.message, /Kein gültiger Code/);
+      assert.match(out.message, /No valid code/);
     } finally {
       rmSync(dir, { recursive: true, force: true });
     }

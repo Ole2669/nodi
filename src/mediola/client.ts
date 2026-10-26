@@ -7,7 +7,7 @@ export type MediolaClientOptions = {
   learnTimeoutMs?: number;
   username?: string;
   password?: string;
-  /** Injected for tests. */
+
   fetchImpl?: typeof fetch;
 };
 
@@ -35,7 +35,6 @@ export class MediolaClient {
     this.fetchImpl = opts.fetchImpl ?? fetch;
   }
 
-  /** GET / — status page; connection check only. */
   async ping(): Promise<{ online: true; html: string } | { online: false; error: string }> {
     try {
       const html = await this.fetchText(`${this.baseUrl}/`, this.timeoutMs);
@@ -45,19 +44,11 @@ export class MediolaClient {
     }
   }
 
-  /**
-   * Start IR/RF learn (community API: XC_FNC=Learn).
-   * Blocks until the gateway returns a code or times out.
-   */
   async learn(): Promise<ParseResult & { learned: LearnedCode | null }> {
     const result = await this.command("Learn", {}, this.learnTimeoutMs);
     return { ...result, learned: extractLearnedCode(result) };
   }
 
-  /**
-   * Build Send2 URL without transmitting.
-   * Official docs: `code=` before `XC_FNC=`.
-   */
   buildSend2Url(code: string, ir: IrRfId = "01", rf: IrRfId = "00"): string {
     const q = new URLSearchParams();
     q.set("code", code);
@@ -119,12 +110,18 @@ export class MediolaClient {
   }
 }
 
+export function redactGatewayUrl(url: string): string {
+  return url
+    .replace(/([?&]XC_PASS=)[^&]*/gi, "$1***")
+    .replace(/([?&]XC_USER=)[^&]*/gi, "$1***");
+}
+
 function formatOffline(e: unknown): string {
   if (e instanceof Error) {
     if (e.name === "AbortError") {
-      return "Gateway-Timeout — erreichbar? Taste rechtzeitig gedrückt?";
+      return "Gateway timeout — reachable? Button pressed in time?";
     }
-    return `Gateway offline oder nicht erreichbar: ${e.message}`;
+    return `Gateway offline or unreachable: ${e.message}`;
   }
-  return "Gateway offline oder nicht erreichbar";
+  return "Gateway offline or unreachable";
 }

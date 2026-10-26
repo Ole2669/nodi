@@ -6,11 +6,11 @@ import {
   prepareSend,
   sendConfirmed,
 } from "./flow.js";
-import { listCovers } from "./ha/covers.js";
+import { coverInfo, listCovers } from "./ha/covers.js";
 import { generateHaYaml } from "./ha/yaml.js";
 import type { Direction, IrRfId } from "./mediola/types.js";
 import { startCoverServer } from "./server.js";
-import { loadStore, storePath } from "./store.js";
+import { loadStore, removeCode, saveStore, storePath } from "./store.js";
 
 const DIRECTIONS = new Set<Direction>(["up", "down", "stop"]);
 
@@ -30,23 +30,62 @@ async function main(argv: string[]): Promise<number> {
   }
 
   if (cmd === "list") {
+    const short = rest.includes("--short");
     const store = loadStore(cfg.dataDir);
     const ids = Object.keys(store.shutters);
     if (ids.length === 0) {
-      console.log(`Keine Codes in ${storePath(cfg.dataDir)}`);
+      console.log(`No learned commands in ${storePath(cfg.dataDir)}`);
       return 0;
     }
+    console.log(`Learned in: ${storePath(cfg.dataDir)}`);
     for (const id of ids) {
       const s = store.shutters[id]!;
-      console.log(`${s.id} (${s.label})`);
+      const info = coverInfo(s);
+      const ha = info.ready ? "HA ready" : "HA incomplete (needs up+down)";
+      console.log(`\n${s.id} — ${s.label} [${ha}]`);
       for (const dir of ["up", "down", "stop"] as Direction[]) {
         const c = s.codes[dir];
-        if (!c) continue;
-        console.log(
-          `  ${dir}: ${c.code.slice(0, 24)}… medium=${c.medium} ir=${c.ir} rf=${c.rf}`,
-        );
+        const dirLabel =
+          dir === "up" ? "Up (up)" : dir === "down" ? "Down (down)" : "Stop (stop)";
+        if (!c) {
+          console.log(`  ${dirLabel}: (not learned)`);
+          continue;
+        }
+        const code = short ? `${c.code.slice(0, 32)}… (${c.code.length} chars)` : c.code;
+        console.log(`  ${dirLabel}:`);
+        console.log(`    Code:    ${code}`);
+        console.log(`    Channel: ir=${c.ir}  rf=${c.rf}  medium=${c.medium}`);
+        console.log(`    Learned: ${c.learnedAt}`);
       }
     }
+    console.log("");
+    return 0;
+  }
+
+  if (cmd === "remove" || cmd === "rm" || cmd === "delete") {
+    const shutter = rest[0];
+    const direction = rest[1] as Direction | undefined;
+    if (!shutter) {
+      console.error("Usage: nodi remove <shutter> [up|down|stop]");
+      console.error("  omit direction → remove entire shutter");
+      return 2;
+    }
+    if (direction != null && !DIRECTIONS.has(direction)) {
+      console.error("Direction: up|down|stop (or omit for all)");
+      return 2;
+    }
+    const result = removeCode(loadStore(cfg.dataDir), shutter, direction);
+    if (!result) {
+      console.error(
+        direction
+          ? `Nothing to remove: "${shutter}" ${direction}`
+          : `Unknown shutter: ${shutter}`,
+      );
+      return 1;
+    }
+    saveStore(cfg.dataDir, result.store);
+    console.log(`Removed: ${result.removed}`);
+    console.log("Note: regenerate HA YAML and update Home Assistant if needed.");
     return 0;
   }
 
@@ -63,7 +102,7 @@ async function main(argv: string[]): Promise<number> {
     const ir = flagValue(rest, "--ir") as IrRfId | undefined;
     const rf = flagValue(rest, "--rf") as IrRfId | undefined;
     console.log(
-      `Lernmodus (${cfg.learnTimeoutMs} ms Timeout) — Handsender am Gateway drücken…`,
+      `Learn mode (${cfg.learnTimeoutMs} ms timeout) — press remote near gateway…`,
     );
     const out = await learnAndAssign(cfg, shutter, direction, { label, ir, rf });
     console.log(out.message);
@@ -99,7 +138,9 @@ async function main(argv: string[]): Promise<number> {
 
   if (cmd === "ha-yaml") {
     const covers = listCovers(loadStore(cfg.dataDir));
-    process.stdout.write(generateHaYaml(covers, cfg.haBaseUrl));
+    process.stdout.write(
+      generateHaYaml(covers, cfg.haBaseUrl, { bridgeToken: cfg.bridgeToken }),
+    );
     return 0;
   }
 
@@ -110,10 +151,17 @@ async function main(argv: string[]): Promise<number> {
       port: cfg.servePort,
     });
     console.log(
-      `Nodi Cover-Bridge http://${srv.host === "0.0.0.0" ? "0.0.0.0" : srv.host}:${srv.port}`,
+      `Nodi cover bridge http://${srv.host === "0.0.0.0" ? "0.0.0.0" : srv.host}:${srv.port}`,
     );
-    console.log(`HA erreicht Bridge unter: ${cfg.haBaseUrl}`);
-    console.log("Send-Autorisierung: laufender Server (kein --yes nötig).");
+    console.log(`HA reaches bridge at: ${cfg.haBaseUrl}`);
+    if (cfg.bridgeToken) {
+      console.log("Bridge auth: NODI_BRIDGE_TOKEN required (Bearer).");
+    } else if (cfg.serveHost === "0.0.0.0" || cfg.serveHost === "::") {
+      console.warn(
+        "Warning: bridge listens on all interfaces without NODI_BRIDGE_TOKEN — LAN-trusted only.",
+      );
+    }
+    console.log("Send authorization: running server (no --yes needed).");
     console.log("YAML: npm run cli -- ha-yaml");
     await new Promise<void>((resolve) => {
       const stop = () => {
@@ -125,7 +173,7 @@ async function main(argv: string[]): Promise<number> {
     return 0;
   }
 
-  console.error(`Unbekannter Befehl: ${cmd}`);
+  console.error(`Unknown command: ${cmd}`);
   printHelp();
   return 2;
 }
@@ -137,20 +185,23 @@ function flagValue(args: string[], flag: string): string | undefined {
 }
 
 function printHelp(): void {
-  console.log(`nodi — Mediola Learn & Send + HA Covers
+  console.log(`nodi — Mediola Learn & Send + HA covers
 
   ping
   learn <shutter> <up|down|stop> [--label Name] [--ir 01] [--rf 00]
-  list
+  list [--short]     learned commands (full code; --short = truncated)
+  remove <shutter> [up|down|stop]
+                     remove one direction or the entire shutter
   prepare <shutter> <up|down|stop>
   send <shutter> <up|down|stop> --yes
-  serve              HTTP-Bridge für Home Assistant
-  ha-yaml            configuration.yaml-Snippet (stdout)
+  serve              HTTP bridge for Home Assistant
+  ha-yaml            configuration.yaml snippet (stdout)
 
-Gateway: GATEWAY_URL (Default http://192.168.178.38)
-Bridge:  NODI_HOST / NODI_PORT (Default 0.0.0.0:8788)
-HA URL:  HA_BASE_URL (Default http://127.0.0.1:8788)
-Codes:   data/codes.json
+Gateway: GATEWAY_URL (default http://mediola.local)
+Bridge:  NODI_HOST / NODI_PORT (default 127.0.0.1:8788)
+Auth:    NODI_BRIDGE_TOKEN (optional Bearer token for serve)
+HA URL:  HA_BASE_URL (default http://127.0.0.1:8788)
+Codes:   data/codes.json (gitignored; local only)
 `);
 }
 

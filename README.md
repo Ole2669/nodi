@@ -1,69 +1,104 @@
 # Nodi
 
-Lokale Anbindung an ein **Mediola Eva a.i.o. Gateway**: Codes lernen, Rollläden zuordnen, in **Home Assistant als Cover** steuern. Zeitpläne gehören in HA — Nodi hat keinen Scheduler.
+Nodi connects a **Mediola Eva a.i.o.** gateway to **Home Assistant** shutter (cover) control. It learns IR/RF remote codes, stores them per shutter direction, and exposes ready shutters as HA cover entities.
 
-Das ältere Projekt `Homes` bleibt unverändert.
+Two ways to use it:
 
-## Voraussetzungen
+1. **Home Assistant custom integration** (recommended) — HA talks directly to the Mediola gateway  
+   → [`docs/home-assistant.md`](docs/home-assistant.md)
+2. **Node.js CLI + optional HTTP bridge** — learn/send from a Mac or Linux host  
+   → [`docs/cli.md`](docs/cli.md)
 
-- Node.js 22+
-- Gateway im LAN (Default `http://192.168.178.38`)
-- Für HA: Nodi-Bridge erreichbar (Default Port `8788`)
+## Overview
 
-## Setup
+Mediola gateways can learn and retransmit classic IR/RF shutter remotes. Nodi maps `up` / `down` / optional `stop` codes to named shutters and drives them from Home Assistant.
+
+Schedules, scenes, and automations stay in Home Assistant. Nodi does not include a scheduler.
+
+**Limitations:** IR/RF is assumed-state (no position feedback). Learn timeout and code formats vary by gateway firmware. The optional HTTP bridge needs a token if you bind it beyond loopback — see the CLI doc.
+
+## Key features
+
+- Learn IR/RF codes via Mediola `XC_FNC=Learn`
+- Send codes via official `XC_FNC=Send2`
+- Home Assistant config-flow integration with cover entities and learn/remove services
+- Optional Node CLI for ping, learn, list, prepare, and confirmed send
+- Optional local HTTP cover bridge + generated HA YAML
+
+## How it works
+
+```mermaid
+flowchart LR
+  Remote[Physical remote] -->|Learn| Mediola[Mediola Eva a.i.o.]
+  HA[Home Assistant] -->|Send2 / Learn| Mediola
+  CLI[Nodi CLI] -->|optional| Mediola
+  HA -->|optional bridge| Bridge[Nodi serve]
+  Bridge -->|Send2| Mediola
+```
+
+Recommended path: install `custom_components/nodi`, add the integration, learn up+down in HA. Covers appear when both directions exist.
+
+## Requirements
+
+| Path | Requirements |
+|---|---|
+| HA integration | Home Assistant with access to `custom_components/`; Mediola on LAN |
+| CLI / bridge | Node.js **22+**, npm; Mediola on LAN |
+
+Optional: gateway username/password if auth is enabled on the device.
+
+## Quick start (Home Assistant)
 
 ```bash
-cp .env.example .env   # optional
-npm i
+git clone https://github.com/Ole2669/nodi.git
+cd nodi
+./scripts/install-ha.sh user@ha-host /path/to/ha/config
+```
+
+Restart HA → **Settings → Devices & services → Add integration → Nodi** → Mediola host (e.g. `mediola.local`).
+
+Then learn up + down via **Developer tools → Actions → `nodi.learn`**, and add a Cover card.
+
+Full install options (HA OS, Docker, Supervised) and learn flow: [`docs/home-assistant.md`](docs/home-assistant.md).
+
+CLI setup, env vars, commands, and HTTP bridge: [`docs/cli.md`](docs/cli.md).
+
+## Project structure
+
+```
+src/                      Node CLI, store, Mediola client, optional HTTP bridge
+custom_components/nodi/   Home Assistant integration
+docs/                     HA and CLI guides
+scripts/                  HA install helpers
+data/                     Local codes.json (gitignored)
+```
+
+## Development
+
+```bash
+npm install
 npm test
+npm run typecheck
 ```
 
-## Codes lernen (Meilenstein 1)
+See [`CONTRIBUTING.md`](CONTRIBUTING.md) and [`docs/cli.md`](docs/cli.md) for details.
 
-```bash
-npm run cli -- ping
-npm run cli -- learn living up --label Wohnzimmer
-npm run cli -- learn living down --label Wohnzimmer
-npm run cli -- list
-npm run cli -- prepare living up
-npm run cli -- send living up --yes
-```
+## Security
 
-Pro Rollladen braucht HA **Hoch und Runter**. Codes: `data/codes.json`.
+See [`SECURITY.md`](SECURITY.md). Treat learned codes and gateway credentials as secrets. Report vulnerabilities privately — do not open public issues that could expose credentials or enable unauthorized shutter control.
 
-## Home Assistant (Meilenstein 2)
+## License
 
-1. Bridge starten (auf dem Mac, der das Gateway erreicht):
+MIT — see [LICENSE](LICENSE).
 
-```bash
-# Wenn HA auf einem anderen Gerät läuft: LAN-IP des Macs setzen
-# HA_BASE_URL=http://192.168.178.x:8788
-npm run cli -- serve
-```
+## Acknowledgements
 
-2. YAML erzeugen und in HA einbinden (`configuration.yaml` oder `!include`):
+- [Mediola](https://www.mediola.com/) Eva a.i.o. gateway HTTP API
+- Community Learn documentation via [fhem-mediola](https://github.com/tobias-d-oe/fhem-mediola)
+- [Home Assistant](https://www.home-assistant.io/) custom integration platform
 
-```bash
-npm run cli -- ha-yaml
-```
+## Further reading
 
-3. HA: Config prüfen → REST commands + Template Entities neu laden (oder neu starten).
-
-Cover-Mapping: HA `open`→`up`, `close`→`down`, `stop`→`stop`. Ohne Positionsfeedback (optimistic).
-
-## API (Bridge)
-
-| Methode | Pfad | Wirkung |
-|---|---|---|
-| GET | `/health` | Liveness |
-| GET | `/api/covers` | Liste inkl. `ready` |
-| POST | `/api/covers/:id/open\|close\|stop` | Send2 an Gateway |
-
-Laufender `serve` = Send-Freigabe (kein CLI `--yes`).
-
-## API-Grundlage Mediola
-
-- Lernen: `GET /command?XC_FNC=Learn` (Community / FHEM)
-- Senden: `GET /command?code=…&XC_FNC=Send2&ir=…&rf=…` (offizielle API)
-
-Details: [`docs/gateway-api.md`](docs/gateway-api.md) · Spec: [`SPEC.md`](SPEC.md)
+- [`docs/home-assistant.md`](docs/home-assistant.md) — connect Nodi to HA
+- [`docs/cli.md`](docs/cli.md) — CLI and HTTP bridge
+- [`CONTRIBUTING.md`](CONTRIBUTING.md) · [`SECURITY.md`](SECURITY.md)
