@@ -2,13 +2,14 @@
   "name": "nodi",
   "version": "0.1.0",
   "private": true,
-  "description": "Mediola Eva a.i.o. — lokal Codes lernen und senden (Meilenstein 1)",
+  "description": "Mediola Eva a.i.o. — Learn/Send + Home Assistant Covers",
   "type": "module",
   "engines": {
     "node": ">=22"
   },
   "scripts": {
     "cli": "tsx src/cli.ts",
+    "serve": "tsx src/cli.ts serve",
     "test": "tsx --test src/*.test.ts src/**/*.test.ts",
     "typecheck": "tsc --noEmit"
   },

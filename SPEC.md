@@ -1,16 +1,15 @@
-# Spec: Nodi — Meilenstein 1 (Learn & Send)
+# Spec: Nodi
 
 ## Objective
 
-Minimal, testbares Modul: Mediola Eva a.i.o. Gateway im LAN erreichen, Fernbedienungscode lernen, einem Rollladen + Richtung zuordnen, lokal speichern, Send2 vorbereiten und erst nach Bestätigung senden.
-
-Meilenstein 2 (Home-Assistant Cover) startet erst nach erfolgreichem realen Lern-/Sendetest.
+Lokale Mediola Eva a.i.o.-Anbindung: IR/RF-Codes lernen, Rollläden zuordnen, an Home Assistant als Cover-Entitäten exportieren. Zeitautomatisierung bleibt in HA. Kein eigener Scheduler, keine volle Smart-Home-UI.
 
 ## Tech Stack
 
 - Node.js 22+, TypeScript, `tsx`
-- Keine Runtime-Dependencies
+- Keine Runtime-Dependencies (eingebautes `node:http`)
 - Persistenz: `data/codes.json`
+- HA: `rest_command` + modernes `template:` Cover (kein MQTT)
 
 ## Commands
 
@@ -23,6 +22,8 @@ npm run cli -- learn <shutter> <up|down|stop>
 npm run cli -- list
 npm run cli -- prepare <shutter> <up|down|stop>
 npm run cli -- send <shutter> <up|down|stop> --yes
+npm run cli -- serve
+npm run cli -- ha-yaml
 ```
 
 ## Project Structure
@@ -30,34 +31,50 @@ npm run cli -- send <shutter> <up|down|stop> --yes
 ```
 src/
   mediola/     Gateway-HTTP, Parser, Code-Extraktion
+  ha/          Cover-Mapping + HA-YAML
   store.ts     Lokale Zuordnung Rollladen ↔ Code
-  flow.ts      Learn-/Send-Orchestrierung (Bestätigung)
-  cli.ts       Explizite Benutzeraktionen
-  config.ts    URL / Timeouts / Auth
+  flow.ts      Learn-/Send-Orchestrierung
+  server.ts    HTTP-Bridge für HA
+  cli.ts       CLI
+  config.ts    URL / Timeouts / Auth / Bridge
 docs/
-  gateway-api.md   Belegte vs. ungeprüfte API-Fakten
+  gateway-api.md
 ```
+
+## Cover-Mapping
+
+| HA | Mediola-Richtung |
+|---|---|
+| open | up |
+| close | down |
+| stop | stop |
+
+Cover-Entity nur wenn **open und close** angelernt. Stop optional.
 
 ## Testing Strategy
 
-- Unit-Tests mit simulierten Gateway-Antworten (kein echtes Gateway nötig)
-- Abdecken: `{XC_SUC}` / `{XC_ERR}` / V5-JSON / ungültig / Timeout-Fehler / Code-Extraktion / Store / Send nur mit `--yes`
+- Unit-/Integrationstests mit simuliertem Gateway und ephemeral HTTP-Port
+- Send-CLI weiter nur mit `--yes`; Bridge-Send autorisiert durch laufenden Server
 
 ## Boundaries
 
-- Always: Tests vor „fertig“; Send nur nach expliziter Bestätigung; altes Projekt `Homes` unangetastet
-- Ask first: Home-Assistant-Integration, destruktive XC_FNC (`Del*`, `fEEPReset`, …)
-- Never: Annahmen über Eva ungeprüft aus V5-/Elero-Pfaden übernehmen; Scheduler / volle UI
+- Always: Tests vor „fertig“; CLI-Send nur mit Bestätigung; `Homes` unangetastet
+- Ask first: MQTT-Discovery, destruktive XC_FNC, Custom HA-Integration
+- Never: eigener Scheduler; Annahmen über Eva ungeprüft
 
 ## Success Criteria
 
+### Meilenstein 1
 1. `npm test` grün mit simulierten Antworten
-2. CLI kann Learn starten und erkannten Code speichern
-3. `prepare` zeigt Send2-URL ohne zu senden
-4. `send --yes` führt Send2 aus; ohne `--yes` Abbruch
+2. Learn → speichern → prepare → send `--yes`
 
-## Open Questions (am echten Gateway prüfen)
+### Meilenstein 2
+1. `serve` exponiert `/api/covers` und `POST …/open|close|stop`
+2. `ha-yaml` erzeugt gültiges modernes Template-YAML
+3. In HA erscheinen ready Covers als `cover.*` (nach Include + Reload)
+4. Kein Nodi-Scheduler
 
-- Exakte Learn-Antwortform auf Eva (V4-Prefix vs. V5-JSON)
-- Ob Codes IR, RF oder beides sind → `ir`/`rf`-Defaults
-- Ob `/command` vs. `/cmd` (Homes nutzt `/command`)
+## Open Questions
+
+- `HA_BASE_URL`: LAN-IP des Macs, wenn HA nicht lokal läuft
+- Optional später: MQTT Discovery statt YAML

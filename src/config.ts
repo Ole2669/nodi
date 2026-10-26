@@ -9,6 +9,14 @@ export type NodiConfig = {
   username?: string;
   password?: string;
   dataDir: string;
+  /** HTTP bridge bind address. */
+  serveHost: string;
+  servePort: number;
+  /**
+   * URL Home Assistant uses to reach this Mac (may differ from serveHost
+   * when HA runs on another host — use LAN IP).
+   */
+  haBaseUrl: string;
 };
 
 const ROOT = resolve(dirname(fileURLToPath(import.meta.url)), "..");
@@ -41,5 +49,13 @@ export function loadConfig(overrides: Partial<NodiConfig> = {}): NodiConfig {
     username: overrides.username ?? process.env.XC_USER,
     password: overrides.password ?? process.env.XC_PASS,
     dataDir: overrides.dataDir ?? resolve(ROOT, "data"),
+    serveHost: overrides.serveHost ?? process.env.NODI_HOST ?? "0.0.0.0",
+    servePort:
+      overrides.servePort ?? Number(process.env.NODI_PORT ?? 8788),
+    haBaseUrl: (
+      overrides.haBaseUrl ??
+      process.env.HA_BASE_URL ??
+      `http://127.0.0.1:${overrides.servePort ?? process.env.NODI_PORT ?? 8788}`
+    ).replace(/\/$/, ""),
   };
 }

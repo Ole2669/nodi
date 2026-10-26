@@ -15,6 +15,9 @@ function cfg(dataDir: string): NodiConfig {
     timeoutMs: 1000,
     learnTimeoutMs: 1000,
     dataDir,
+    serveHost: "127.0.0.1",
+    servePort: 8788,
+    haBaseUrl: "http://127.0.0.1:8788",
   };
 }
 

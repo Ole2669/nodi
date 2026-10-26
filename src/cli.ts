@@ -6,7 +6,10 @@ import {
   prepareSend,
   sendConfirmed,
 } from "./flow.js";
+import { listCovers } from "./ha/covers.js";
+import { generateHaYaml } from "./ha/yaml.js";
 import type { Direction, IrRfId } from "./mediola/types.js";
+import { startCoverServer } from "./server.js";
 import { loadStore, storePath } from "./store.js";
 
 const DIRECTIONS = new Set<Direction>(["up", "down", "stop"]);
@@ -51,7 +54,9 @@ async function main(argv: string[]): Promise<number> {
     const shutter = rest[0];
     const direction = rest[1] as Direction | undefined;
     if (!shutter || !direction || !DIRECTIONS.has(direction)) {
-      console.error("Usage: nodi learn <shutter> <up|down|stop> [--label Name] [--ir 01] [--rf 00]");
+      console.error(
+        "Usage: nodi learn <shutter> <up|down|stop> [--label Name] [--ir 01] [--rf 00]",
+      );
       return 2;
     }
     const label = flagValue(rest, "--label");
@@ -92,6 +97,34 @@ async function main(argv: string[]): Promise<number> {
     return out.ok ? 0 : 1;
   }
 
+  if (cmd === "ha-yaml") {
+    const covers = listCovers(loadStore(cfg.dataDir));
+    process.stdout.write(generateHaYaml(covers, cfg.haBaseUrl));
+    return 0;
+  }
+
+  if (cmd === "serve") {
+    const srv = await startCoverServer({
+      cfg,
+      host: cfg.serveHost,
+      port: cfg.servePort,
+    });
+    console.log(
+      `Nodi Cover-Bridge http://${srv.host === "0.0.0.0" ? "0.0.0.0" : srv.host}:${srv.port}`,
+    );
+    console.log(`HA erreicht Bridge unter: ${cfg.haBaseUrl}`);
+    console.log("Send-Autorisierung: laufender Server (kein --yes nötig).");
+    console.log("YAML: npm run cli -- ha-yaml");
+    await new Promise<void>((resolve) => {
+      const stop = () => {
+        void srv.close().finally(resolve);
+      };
+      process.once("SIGINT", stop);
+      process.once("SIGTERM", stop);
+    });
+    return 0;
+  }
+
   console.error(`Unbekannter Befehl: ${cmd}`);
   printHelp();
   return 2;
@@ -104,17 +137,20 @@ function flagValue(args: string[], flag: string): string | undefined {
 }
 
 function printHelp(): void {
-  console.log(`nodi — Mediola Learn & Send (Meilenstein 1)
+  console.log(`nodi — Mediola Learn & Send + HA Covers
 
   ping
   learn <shutter> <up|down|stop> [--label Name] [--ir 01] [--rf 00]
   list
   prepare <shutter> <up|down|stop>
   send <shutter> <up|down|stop> --yes
+  serve              HTTP-Bridge für Home Assistant
+  ha-yaml            configuration.yaml-Snippet (stdout)
 
 Gateway: GATEWAY_URL (Default http://192.168.178.38)
+Bridge:  NODI_HOST / NODI_PORT (Default 0.0.0.0:8788)
+HA URL:  HA_BASE_URL (Default http://127.0.0.1:8788)
 Codes:   data/codes.json
-Docs:    docs/gateway-api.md
 `);
 }
 
