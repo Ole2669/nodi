@@ -1,0 +1,12 @@
+{
+  "domain": "nodi",
+  "name": "Nodi (Mediola)",
+  "codeowners": ["@Ole2669"],
+  "config_flow": true,
+  "documentation": "https://github.com/Ole2669/nodi",
+  "integration_type": "hub",
+  "iot_class": "assumed_state",
+  "issue_tracker": "https://github.com/Ole2669/nodi/issues",
+  "requirements": [],
+  "version": "0.3.10"
+}

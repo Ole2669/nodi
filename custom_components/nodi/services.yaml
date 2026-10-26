@@ -1,0 +1,98 @@
+learn:
+  name: Learn command
+  description: >
+    Starts Mediola learn mode. Press the remote near the gateway
+    (timeout ~90 seconds). Cover appears after up+down are learned.
+  fields:
+    shutter_id:
+      name: Shutter ID
+      description: Short internal name, e.g. living or kitchen
+      required: true
+      example: living
+      selector:
+        text:
+    direction:
+      name: Direction
+      description: up = open, down = close, stop = stop
+      required: true
+      example: up
+      selector:
+        select:
+          options:
+            - up
+            - down
+            - stop
+    name:
+      name: Display name
+      description: Label in Home Assistant, e.g. Living room
+      required: false
+      example: Living room
+      selector:
+        text:
+    ir:
+      name: IR channel
+      description: Optional; default from medium (01 = internal diode)
+      required: false
+      selector:
+        text:
+    rf:
+      name: RF channel
+      description: Optional; default 00
+      required: false
+      selector:
+        text:
+
+remove:
+  name: Remove command
+  description: Removes one direction or the entire shutter.
+  fields:
+    shutter_id:
+      name: Shutter ID
+      required: true
+      selector:
+        text:
+    direction:
+      name: Direction
+      description: Omit to remove the entire shutter
+      required: false
+      selector:
+        select:
+          options:
+            - up
+            - down
+            - stop
+
+list_codes:
+  name: List commands
+  description: >
+    Returns all learned codes as the action response (Developer Tools)
+    and as a notification (bell icon).
+
+set_options:
+  name: Shutter options
+  description: >
+    inverted: shutter opens upward from the bottom.
+    travel_time: seconds until open/closed status (default 25).
+    Opposite button while moving sets status to stopped.
+  fields:
+    shutter_id:
+      name: Shutter ID
+      required: true
+      example: living
+      selector:
+        text:
+    inverted:
+      name: Inverted (opens from bottom)
+      required: false
+      selector:
+        boolean:
+    travel_time:
+      name: Travel time (seconds)
+      required: false
+      example: 25
+      selector:
+        number:
+          min: 5
+          max: 120
+          step: 1
+          unit_of_measurement: s

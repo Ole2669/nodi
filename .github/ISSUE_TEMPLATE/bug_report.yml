@@ -1,0 +1,64 @@
+name: Bug report
+description: Report unexpected behavior in the CLI, bridge, or HA integration
+title: "[Bug]: "
+labels: ["bug"]
+body:
+  - type: markdown
+    attributes:
+      value: |
+        Thanks for the report. **Do not paste secrets**, gateway passwords, bridge tokens, or full production IR/RF codes.
+  - type: dropdown
+    id: area
+    attributes:
+      label: Area
+      options:
+        - Home Assistant integration
+        - Node CLI
+        - HTTP bridge / ha-yaml
+        - Docs / install scripts
+        - Other
+    validations:
+      required: true
+  - type: textarea
+    id: description
+    attributes:
+      label: Description
+      description: What went wrong?
+    validations:
+      required: true
+  - type: textarea
+    id: repro
+    attributes:
+      label: Steps to reproduce
+      placeholder: |
+        1. …
+        2. …
+        3. …
+    validations:
+      required: true
+  - type: textarea
+    id: expected
+    attributes:
+      label: Expected behavior
+    validations:
+      required: true
+  - type: textarea
+    id: actual
+    attributes:
+      label: Actual behavior
+    validations:
+      required: true
+  - type: input
+    id: versions
+    attributes:
+      label: Versions
+      description: Nodi commit or version, Home Assistant version, Node.js version (if CLI)
+      placeholder: e.g. nodi main @ abc123, HA 2025.x, Node 22.x
+    validations:
+      required: true
+  - type: textarea
+    id: logs
+    attributes:
+      label: Logs (redacted)
+      description: Paste relevant logs with secrets and full codes removed or truncated
+      render: shell

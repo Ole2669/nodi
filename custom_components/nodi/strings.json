@@ -1,0 +1,30 @@
+{
+  "config": {
+    "step": {
+      "user": {
+        "title": "Nodi — Mediola gateway",
+        "description": "LAN IP of your Mediola Eva a.i.o. gateway.",
+        "data": {
+          "host": "Host / IP",
+          "port": "Port",
+          "username": "Username (optional)",
+          "password": "Password (optional)",
+          "learn_timeout": "Learn timeout (seconds)",
+          "travel_time": "Travel time to open/closed (seconds)"
+        },
+        "data_description": {
+          "host": "e.g. 192.168.1.50 or mediola.local",
+          "port": "Default 80 (/command)",
+          "learn_timeout": "How long to wait for the remote button press",
+          "travel_time": "After this, status becomes open/closed; opposite button while moving = stopped"
+        }
+      }
+    },
+    "error": {
+      "cannot_connect": "Cannot reach gateway. Check IP and network."
+    },
+    "abort": {
+      "already_configured": "This gateway is already configured."
+    }
+  }
+}

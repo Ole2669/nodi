@@ -1,0 +1,30 @@
+{
+  "config": {
+    "step": {
+      "user": {
+        "title": "Nodi — Mediola Gateway",
+        "description": "IP des Mediola Eva a.i.o. Gateways im LAN.",
+        "data": {
+          "host": "Host / IP",
+          "port": "Port",
+          "username": "Benutzer (optional)",
+          "password": "Passwort (optional)",
+          "learn_timeout": "Lern-Timeout (Sekunden)",
+          "travel_time": "Fahrzeit bis Offen/Geschlossen (Sekunden)"
+        },
+        "data_description": {
+          "host": "z. B. 192.168.1.50 oder mediola.local",
+          "port": "Standard 80 (/command)",
+          "learn_timeout": "Wie lange auf den Handsender gewartet wird",
+          "travel_time": "Danach Status Offen/Geschlossen; Gegentaste = Gestoppt"
+        }
+      }
+    },
+    "error": {
+      "cannot_connect": "Gateway nicht erreichbar. IP und Netzwerk prüfen."
+    },
+    "abort": {
+      "already_configured": "Dieses Gateway ist bereits eingerichtet."
+    }
+  }
+}
